@@ -125,3 +125,66 @@ describe "RailsPartials", ->
           expect(partialPrompt).toExist()
           expect(partialPrompt.errorMessage.text()).toContain("can't be a directory")
           expect(partialPrompt).toHaveClass('error')
+
+    describe "indentation", ->
+      describe "for the original file", ->
+        describe "when .erb extension", ->
+          [mainEditor, partialPrompt, selection] = []
+          beforeEach ->
+            mainEditor = null
+            partialPrompt = null
+
+            waitsForPromise ->
+              atom.workspace.open(__dirname + '/fixtures/index.html.erb').then (tempEditor) ->
+                mainEditor = tempEditor
+                mainEditor.setCursorScreenPosition([5, 4])
+                mainEditor.selectDown(2)
+                mainEditor.selectToEndOfLine()
+                selection = mainEditor.getSelectedText()
+                atom.workspaceView.trigger 'rails-partials:generate'
+                partialPrompt = atom.workspaceView.find(".rails-partials-prompt").view()
+                expect(partialPrompt).toExist()
+
+            runs ->
+              partialPrompt.promptInput.insertText('awesome_erb_partial')
+              partialPrompt.trigger('core:confirm')
+
+          it "at the right level", ->
+            atom.workspace.open(__dirname + '/fixtures/index.html.erb').then (tempEditor) ->
+              expect(mainEditor.getText()).toMatch(/\n\s{4}<%=\srender/)
+          
+          it "generates the partial with the correct name and in same directory", ->
+            runs ->
+              waitsForPromise ->
+                atom.workspace.open(__dirname + '/fixtures/_awesome_erb_partial.html.erb').then (secondErbEditor) ->
+                  expect(secondErbEditor.getText()).toMatch(/<div\sclass\=\"wrapper\"\>/)
+                  fs.removeSync(secondErbEditor.getPath())
+
+        describe "when .haml extension", ->
+          [mainEditor, partialPrompt, selection] = []
+          beforeEach ->
+            mainEditor = null
+            partialPrompt = null
+            
+            waitsForPromise ->
+              atom.packages.activatePackage('language-ruby')
+
+            waitsForPromise ->
+              atom.workspace.open(__dirname + '/fixtures/index.html.haml').then (tempEditor) ->
+                mainEditor = tempEditor
+                mainEditor.setCursorScreenPosition([4, 4])
+                mainEditor.selectDown(4)
+                mainEditor.selectToEndOfLine()
+                selection = mainEditor.getSelectedText()
+                atom.workspaceView.trigger 'rails-partials:generate'
+                partialPrompt = atom.workspaceView.find(".rails-partials-prompt").view()
+                expect(partialPrompt).toExist()
+
+            runs ->
+              partialPrompt.promptInput.insertText('awesome_erb_partial')
+              partialPrompt.trigger('core:confirm')
+
+          it "at the right level", ->
+            waitsForPromise ->
+              atom.workspace.open(__dirname + '/fixtures/index.html.haml').then (tempEditor) ->
+                expect(mainEditor.getText()).toMatch(/\n\s{4}=\srender/)

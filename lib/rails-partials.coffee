@@ -20,8 +20,11 @@ module.exports =
 
   generate: (input, partialFullPath) ->
     editor = atom.workspace.getActiveEditor()
-    selection = editor.getSelection().getText()
+    realSelection = editor.getSelection()
+    selection = realSelection.getText()
     editor.insertText(@renderInstruction(@inputPath(input)), autoIndent: true)
+    # [start, end] = realSelection.getBufferRowRange()
+    # editor.indentSelectedRows(start, end)
     promise = atom.workspace.open(partialFullPath)
     promise.then (partialEditor) ->
       partialEditor.insertText(selection, autoIndent: true)
